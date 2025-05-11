@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Nebula Chess | Cosmic Mind Experience</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/party-js@latest/bundle/party.min.js"></script>
+    <style>
+        :root {
+            --cosmic-primary: linear-gradient(135deg, #6c31d3 0%, #ff38d0 100%);
+            --nebula-secondary: linear-gradient(45deg, #00f3ff 0%, #8a2be2 100%);
+            --starry-bg: radial-gradient(circle at 50% 50%, #0a0818 0%, #000000 100%);
+            --quantum-glass: rgba(255, 255, 255, 0.05);
+            --event-horizon: 24px;
+        }
+
+        body {
+            margin: 0;
+            background: var(--starry-bg);
+            font-family: 'Space Mono', monospace;
+            color: white;
+            overflow-x: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+            background: var(--quantum-glass);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .quantum-board {
+            width: 95vmin;
+            height: 95vmin;
+            margin: 2vmin auto;
+            border: 2px solid var(--quantum-glass);
+            border-radius: var(--event-horizon);
+            background: var(--quantum-glass);
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 40px rgba(108, 49, 211, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .square {
+            width: 12.5%;
+            height: 12.5%;
+            float: left;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .square::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            mix-blend-mode: soft-light;
+            opacity: 0.1;
+            background: var(--nebula-secondary);
+        }
+
+        .piece {
+            width: 80%;
+            height: 80%;
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            cursor: grab;
+            transition: all 0.3s ease;
+            background-size: contain;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+        }
+
+        .piece.dragging {
+            cursor: grabbing;
+            transform: scale(1.2) rotate(8deg);
+            filter: drop-shadow(0 0 12px rgba(255, 56, 208, 0.8));
+            z-index: 100;
+        }
+
+        .move-indicator {
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            background: rgba(0, 243, 255, 0.4);
+            border-radius: 50%;
+            top: 35%;
+            left: 35%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.4; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(0.8); opacity: 0.4; }
+        }
+
+        .time-machine {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--quantum-glass);
+            border-radius: var(--event-horizon);
+            backdrop-filter: blur(8px);
+        }
+
+        .cosmic-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            padding: 2rem;
+        }
+
+        .quantum-button {
+            background: var(--cosmic-primary);
+            border: none;
+            padding: 1rem 2rem;
+            color: white;
+            border-radius: var(--event-horizon);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quantum-button::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .quantum-button:hover::after {
+            opacity: 1;
+        }
+
+        .holographic-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            z-index: 1000;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(255, 255, 255, 0.02) 0px,
+                rgba(255, 255, 255, 0.02) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+        }
+    </style>
+</head>
+<body>
+    <div class="holographic-overlay"></div>
+    <div class="hud">
+        <div class="quantum-button" id="quantumMenu"><i class="fas fa-infinity"></i></div>
+        <div class="game-status" id="gameStatus">♚ Cosmic Mode Activated</div>
+        <div class="quantum-button" id="soundToggle"><i class="fas fa-volume-up"></i></div>
+    </div>
+
+    <div class="quantum-board" id="chessboard"></div>
+
+    <div class="time-machine">
+        <button class="quantum-button" id="rewind"><i class="fas fa-backward"></i></button>
+        <button class="quantum-button" id="playPause"><i class="fas fa-pause"></i></button>
+        <button class="quantum-button" id="forward"><i class="fas fa-forward"></i></button>
+    </div>
+
+    <div class="cosmic-controls">
+        <button class="quantum-button" id="aiDifficulty"><i class="fas fa-robot"></i> Quantum AI</button>
+        <button class="quantum-button" id="realityShift"><i class="fas fa-swirl"></i> Shift Dimension</button>
+        <button class="quantum-button" id="timeDilation"><i class="fas fa-hourglass-half"></i> Slow Mo</button>
+        <button class="quantum-button" id="singularity"><i class="fas fa-black-hole"></i> Event Horizon</button>
+    </div>
+
+    <script>
+        class QuantumChess {
+            constructor() {
+                this.game = new Chess();
+                this.board = document.getElementById('chessboard');
+                this.draggedPiece = null;
+                this.currentDimension = 'standard';
+                this.timeDilationActive = false;
+                this.init();
+            }
+
+            init() {
+                this.createBoard();
+                this.initDragAndDrop();
+                this.initEventListeners();
+                this.initAudio();
+                this.startAmbientEffects();
+            }
+
+            createBoard() {
+                this.board.innerHTML = '';
+                for (let rank = 8; rank >= 1; rank--) {
+                    for (let file = 0; file < 8; file++) {
+                        const square = document.createElement('div');
+                        square.className = `square ${(rank + file) % 2 ? 'light' : 'dark'}`;
+                        square.id = `${'abcdefgh'[file]}${rank}`;
+                        this.board.appendChild(square);
+                    }
+                }
+                this.updatePieces();
+            }
+
+            updatePieces() {
+                this.game.board().forEach((row, rank) => {
+                    row.forEach((piece, file) => {
+                        const square = document.getElementById(
+                            `${'abcdefgh'[file]}${8 - rank}`
+                        );
+                        if (piece) {
+                            let pieceElement = square.querySelector('.piece') || document.createElement('div');
+                            pieceElement.className = `piece ${piece.color}${piece.type}`;
+                            pieceElement.draggable = true;
+                            if (!square.contains(pieceElement)) square.appendChild(pieceElement);
+                        } else {
+                            square.querySelector('.piece')?.remove();
+                        }
+                    });
+                });
+            }
+
+            initDragAndDrop() {
+                this.board.addEventListener('dragstart', e => {
+                    if (e.target.classList.contains('piece')) {
+                        this.draggedPiece = e.target;
+                        e.target.classList.add('dragging');
+                        this.highlightLegalMoves(e.target.parentElement.id);
+                    }
+                });
+
+                this.board.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    const square = e.target.closest('.square');
+                    if (square) square.style.transform = 'scale(1.1)';
+                });
+
+                this.board.addEventListener('dragend', e => {
+                    this.board.querySelectorAll('.square').forEach(sq => {
+                        sq.style.transform = '';
+                        sq.querySelector('.move-indicator')?.remove();
+                    });
+                    this.draggedPiece?.classList.remove('dragging');
+                    this.draggedPiece = null;
+                });
+
+                this.board.addEventListener('drop', e => {
+                    e.preventDefault();
+                    const targetSquare = e.target.closest('.square');
+                    if (targetSquare && this.draggedPiece) {
+                        const move = this.game.move({
+                            from: this.draggedPiece.parentElement.id,
+                            to: targetSquare.id,
+                            promotion: 'q'
+                        });
+                        if (move) {
+                            this.animateQuantumMove(move);
+                            if (this.game.in_check()) this.triggerSingularityEffect();
+                        }
+                    }
+                });
+            }
+
+            animateQuantumMove(move) {
+                const fromSquare = document.getElementById(move.from);
+                const toSquare = document.getElementById(move.to);
+                const piece = fromSquare.querySelector('.piece');
+                
+                // Create temporary animation element
+                const animPiece = piece.cloneNode(true);
+                animPiece.style.position = 'fixed';
+                animPiece.style.transform = `translate(${fromSquare.offsetLeft}px, ${fromSquare.offsetTop}px)`;
+                document.body.appendChild(animPiece);
+
+                // Animate with physics-like motion
+                const targetX = toSquare.offsetLeft;
+                const targetY = toSquare.offsetTop;
+                animPiece.animate([
+                    { transform: `translate(${fromSquare.offsetLeft}px, ${fromSquare.offsetTop}px)` },
+                    { transform: `translate(${targetX}px, ${targetY}px) scale(1.2) rotate(360deg)` },
+                    { transform: `translate(${targetX}px, ${targetY}px) scale(1)` }
+                ], {
+                    duration: this.timeDilationActive ? 2000 : 500,
+                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                }).onfinish = () => {
+                    animPiece.remove();
+                    this.updatePieces();
+                    this.quantumRippleEffect(toSquare);
+                };
+            }
+
+            quantumRippleEffect(element) {
+                party.sparkles(element, {
+                    count: party.variation.range(20, 40),
+                    speed: party.variation.range(100, 300),
+                    size: party.variation.range(0.5, 1.2)
+                });
+            }
+
+            triggerSingularityEffect() {
+                document.documentElement.style.setProperty('--event-horizon', '50%');
+                setTimeout(() => {
+                    document.documentElement.style.setProperty('--event-horizon', '24px');
+                }, 1000);
+            }
+
+            initAudio() {
+                this.audio = {
+                    move: new Howl({ src: ['move.wav'] }),
+                    capture: new Howl({ src: ['capture.wav'] }),
+                    check: new Howl({ src: ['check.wav'] }),
+                    ambient: new Howl({
+                        src: ['ambient.mp3'],
+                        loop: true,
+                        volume: 0.3
+                    })
+                };
+            }
+
+            startAmbientEffects() {
+                // Add dynamic background animation
+                let hueRotation = 0;
+                setInterval(() => {
+                    hueRotation = (hueRotation + 0.1) % 360;
+                    document.body.style.background = `
+                        radial-gradient(
+                            circle at ${Math.random() * 100}% ${Math.random() * 100}%,
+                            hsl(${hueRotation}, 70%, 10%) 0%,
+                            hsl(${(hueRotation + 120) % 360}, 70%, 5%) 100%
+                        )
+                    `;
+                }, 5000);
+            }
+        }
+
+        // Initialize Quantum Chess Experience
+        const quantumChess = new QuantumChess();
+
+        // TODO: Implement AI integration, game modes, and additional effects
+    </script>
+</body>
+</html>
