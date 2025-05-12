@@ -2,52 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Nebula Chess | Cosmic Mind Experience</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Chess</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/party-js@latest/bundle/party.min.js"></script>
     <style>
         :root {
-            --cosmic-primary: linear-gradient(135deg, #6c31d3 0%, #ff38d0 100%);
-            --nebula-secondary: linear-gradient(45deg, #00f3ff 0%, #8a2be2 100%);
-            --starry-bg: radial-gradient(circle at 50% 50%, #0a0818 0%, #000000 100%);
-            --quantum-glass: rgba(255, 255, 255, 0.05);
-            --event-horizon: 24px;
+            --dark-bg: #1a1a1a;
+            --light-bg: #2a2a2a;
+            --highlight: #00ff88;
+            --text: #ffffff;
         }
 
         body {
             margin: 0;
-            background: var(--starry-bg);
-            font-family: 'Space Mono', monospace;
-            color: white;
-            overflow-x: hidden;
-            height: 100vh;
+            background: var(--dark-bg);
+            color: var(--text);
+            font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
         }
 
-        .hud {
-            display: flex;
-            justify-content: space-between;
-            padding: 1rem;
-            background: var(--quantum-glass);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .quantum-board {
-            width: 95vmin;
-            height: 95vmin;
-            margin: 2vmin auto;
-            border: 2px solid var(--quantum-glass);
-            border-radius: var(--event-horizon);
-            background: var(--quantum-glass);
-            backdrop-filter: blur(8px);
-            box-shadow: 0 0 40px rgba(108, 49, 211, 0.3);
-            position: relative;
-            overflow: hidden;
+        .chess-board {
+            width: 90vmin;
+            height: 90vmin;
+            max-width: 600px;
+            max-height: 600px;
+            margin: 20px;
+            border: 2px solid var(--light-bg);
         }
 
         .square {
@@ -55,127 +40,81 @@
             height: 12.5%;
             float: left;
             position: relative;
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            background-size: cover;
+            transition: background-color 0.3s;
         }
 
-        .square::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            mix-blend-mode: soft-light;
-            opacity: 0.1;
-            background: var(--nebula-secondary);
+        .square.light {
+            background-color: var(--light-bg);
+        }
+
+        .square.dark {
+            background-color: var(--dark-bg);
+        }
+
+        .square.highlight {
+            background-color: rgba(0, 255, 136, 0.3);
         }
 
         .piece {
             width: 100%;
             height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 3.5vmin;
-            font-family: 'Arial Unicode MS', sans-serif;
+            background-size: 80%;
+            background-repeat: no-repeat;
+            background-position: center;
             cursor: grab;
-            transition: all 0.3s ease;
-            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
-            position: absolute;
-            top: 0;
-            left: 0;
+            transition: transform 0.2s;
         }
 
-        .white { color: #fff; }
-        .black { color: #222; }
-
-        .legal-move {
-            position: absolute;
-            width: 30%;
-            height: 30%;
-            background: rgba(0, 243, 255, 0.3);
-            border-radius: 50%;
-            pointer-events: none;
-            animation: pulse 1.5s infinite;
+        .piece.dragging {
+            cursor: grabbing;
+            transform: scale(1.2);
+            z-index: 1;
         }
 
-        .check {
-            animation: glow-red 1s infinite alternate;
+        .controls {
+            margin: 20px;
+            display: flex;
+            gap: 10px;
         }
 
-        @keyframes glow-red {
-            from { box-shadow: 0 0 10px rgba(255,0,0,0.3); }
-            to { box-shadow: 0 0 30px rgba(255,0,0,0.7); }
-        }
-
-        .holographic-overlay {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            mix-blend-mode: screen;
-            z-index: 1000;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(255, 255, 255, 0.02) 0px,
-                rgba(255, 255, 255, 0.02) 1px,
-                transparent 1px,
-                transparent 2px
-            );
-        }
-
-        .quantum-button {
-            background: var(--cosmic-primary);
+        button {
+            padding: 10px 20px;
+            background: var(--highlight);
             border: none;
-            padding: 1rem 2rem;
-            color: white;
-            border-radius: var(--event-horizon);
+            border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s ease;
             font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
+            color: var(--dark-bg);
         }
 
-        .quantum-button::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: rgba(255, 255, 255, 0.1);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .quantum-button:hover::after {
-            opacity: 1;
+        .status {
+            margin: 10px;
+            font-size: 1.2em;
         }
     </style>
 </head>
 <body>
-    <div class="holographic-overlay"></div>
-    <div class="hud">
-        <div class="quantum-button" id="quantumMenu"><i class="fas fa-infinity"></i></div>
-        <div class="game-status" id="gameStatus">♚ Cosmic Mode Activated</div>
-        <div class="quantum-button" id="soundToggle"><i class="fas fa-volume-up"></i></div>
+    <div class="status" id="status">White's turn</div>
+    <div class="chess-board" id="board"></div>
+    <div class="controls">
+        <button onclick="newGame()">New Game</button>
+        <button onclick="toggleAI()">Toggle AI</button>
     </div>
 
-    <div class="quantum-board" id="chessboard"></div>
-
     <script>
-        class CosmicChess {
+        class ChessGame {
             constructor() {
                 this.game = new Chess();
-                this.board = document.getElementById('chessboard');
-                this.selectedPiece = null;
-                this.legalMoves = [];
-                this.currentMode = 'ai';
+                this.board = document.getElementById('board');
+                this.selectedSquare = null;
+                this.aiEnabled = false;
                 this.init();
             }
 
             init() {
                 this.createBoard();
-                this.initDragAndDrop();
-                this.updatePieces();
-                this.initAudio();
-                this.startAmbientEffects();
+                this.updateBoard();
             }
 
             createBoard() {
@@ -183,210 +122,152 @@
                 for (let rank = 8; rank >= 1; rank--) {
                     for (let file = 0; file < 8; file++) {
                         const square = document.createElement('div');
-                        square.className = `square ${(rank + file) % 2 === 0 ? 'white' : 'black'}`;
-                        square.id = `${'abcdefgh'[file]}${rank}`;
+                        square.className = `square ${(rank + file) % 2 === 0 ? 'light' : 'dark'}`;
+                        square.dataset.position = `${'abcdefgh'[file]}${rank}`;
+                        square.addEventListener('click', (e) => this.handleSquareClick(e));
+                        square.addEventListener('dragover', (e) => e.preventDefault());
+                        square.addEventListener('drop', (e) => this.handleDrop(e));
                         this.board.appendChild(square);
                     }
                 }
             }
 
-            getPieceSymbol(piece) {
-                const symbols = {
-                    'w': { 
-                        'k': '♔', 'q': '♕', 'r': '♖',
-                        'b': '♗', 'n': '♘', 'p': '♙'
-                    },
-                    'b': {
-                        'k': '♚', 'q': '♛', 'r': '♜',
-                        'b': '♝', 'n': '♞', 'p': '♟'
+            updateBoard() {
+                document.querySelectorAll('.square').forEach(square => {
+                    square.innerHTML = '';
+                    const position = square.dataset.position;
+                    const piece = this.game.get(position);
+                    
+                    if (piece) {
+                        const pieceElement = document.createElement('div');
+                        pieceElement.className = `piece ${piece.color}`;
+                        pieceElement.draggable = true;
+                        pieceElement.style.backgroundImage = `url('pieces/${piece.color}${piece.type}.svg')`;
+                        pieceElement.addEventListener('dragstart', (e) => {
+                            e.dataTransfer.setData('text/plain', position);
+                            pieceElement.classList.add('dragging');
+                        });
+                        pieceElement.addEventListener('dragend', () => {
+                            pieceElement.classList.remove('dragging');
+                        });
+                        square.appendChild(pieceElement);
                     }
-                };
-                return symbols[piece.color][piece.type];
+                });
+
+                document.getElementById('status').textContent = this.getStatusText();
+                this.highlightCheck();
             }
 
-            updatePieces() {
-                this.game.board().forEach((row, rank) => {
-                    row.forEach((piece, file) => {
-                        const square = document.getElementById(
-                            `${'abcdefgh'[file]}${8 - rank}`
-                        );
-                        square.innerHTML = '';
-                        
-                        if (piece) {
-                            const pieceElement = document.createElement('div');
-                            pieceElement.className = `piece ${piece.color}`;
-                            pieceElement.textContent = this.getPieceSymbol(piece);
-                            pieceElement.dataset.piece = `${piece.color}${piece.type}`;
-                            pieceElement.draggable = true;
-                            square.appendChild(pieceElement);
-                        }
+            handleSquareClick(e) {
+                const square = e.target.closest('.square');
+                if (!square) return;
 
-                        if (this.game.in_check() && piece?.type === 'k') {
-                            square.classList.add('check');
-                        } else {
-                            square.classList.remove('check');
-                        }
+                const position = square.dataset.position;
+                const piece = this.game.get(position);
+
+                if (this.selectedSquare) {
+                    const move = this.game.move({
+                        from: this.selectedSquare,
+                        to: position,
+                        promotion: 'q'
                     });
-                });
+
+                    if (move) {
+                        this.updateBoard();
+                        if (this.aiEnabled) setTimeout(() => this.makeAIMove(), 500);
+                    }
+                    this.clearHighlights();
+                    this.selectedSquare = null;
+                } else if (piece && piece.color === this.game.turn()) {
+                    this.selectedSquare = position;
+                    this.highlightMoves(position);
+                }
             }
 
-            initDragAndDrop() {
-                this.board.addEventListener('dragstart', e => {
-                    if (e.target.classList.contains('piece')) {
-                        this.selectedPiece = e.target.parentElement.id;
-                        e.target.classList.add('dragging');
-                        this.showLegalMoves(this.selectedPiece);
-                    }
+            handleDrop(e) {
+                e.preventDefault();
+                const from = e.dataTransfer.getData('text/plain');
+                const to = e.target.closest('.square').dataset.position;
+                
+                const move = this.game.move({
+                    from: from,
+                    to: to,
+                    promotion: 'q'
                 });
 
-                this.board.addEventListener('dragover', e => {
-                    e.preventDefault();
-                    const square = e.target.closest('.square');
-                    if (square) square.style.transform = 'scale(1.1)';
-                });
-
-                this.board.addEventListener('dragend', e => {
-                    this.board.querySelectorAll('.square').forEach(sq => {
-                        sq.style.transform = '';
-                    });
-                    this.clearLegalMoves();
-                    e.target.classList.remove('dragging');
-                });
-
-                this.board.addEventListener('drop', e => {
-                    e.preventDefault();
-                    const targetSquare = e.target.closest('.square');
-                    if (targetSquare && this.selectedPiece) {
-                        this.makeMove(this.selectedPiece, targetSquare.id);
-                    }
-                });
-            }
-
-            makeMove(from, to) {
-                const move = this.game.move({ from, to, promotion: 'q' });
                 if (move) {
-                    this.animateMove(move);
-                    this.playMoveSound(move);
-                    this.checkGameState();
-                    if (this.currentMode === 'ai' && !this.game.game_over()) {
-                        setTimeout(() => this.makeAIMove(), 500);
+                    this.updateBoard();
+                    if (this.aiEnabled) setTimeout(() => this.makeAIMove(), 500);
+                }
+            }
+
+            highlightMoves(from) {
+                this.clearHighlights();
+                const moves = this.game.moves({ square: from, verbose: true });
+                
+                moves.forEach(move => {
+                    const square = document.querySelector(`[data-position="${move.to}"]`);
+                    square.classList.add('highlight');
+                });
+            }
+
+            highlightCheck() {
+                if (this.game.in_check()) {
+                    const kingPosition = this.game.board().flat().find(sq => 
+                        sq && sq.type === 'k' && sq.color === this.game.turn()
+                    )?.square;
+                    
+                    if (kingPosition) {
+                        document.querySelector(`[data-position="${kingPosition}"]`)
+                            .classList.add('highlight');
                     }
                 }
-                this.selectedPiece = null;
-                return move;
             }
 
-            animateMove(move) {
-                const fromSquare = document.getElementById(move.from);
-                const toSquare = document.getElementById(move.to);
-                const piece = fromSquare.querySelector('.piece');
-                
-                const animPiece = piece.cloneNode(true);
-                animPiece.style.position = 'fixed';
-                animPiece.style.transform = `translate(${fromSquare.offsetLeft}px, ${fromSquare.offsetTop}px)`;
-                document.body.appendChild(animPiece);
-
-                const targetX = toSquare.offsetLeft;
-                const targetY = toSquare.offsetTop;
-                animPiece.animate([
-                    { transform: `translate(${fromSquare.offsetLeft}px, ${fromSquare.offsetTop}px)` },
-                    { transform: `translate(${targetX}px, ${targetY}px) scale(1.2) rotate(360deg)` },
-                    { transform: `translate(${targetX}px, ${targetY}px) scale(1)` }
-                ], {
-                    duration: 500,
-                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-                }).onfinish = () => {
-                    animPiece.remove();
-                    this.updatePieces();
-                    this.quantumRippleEffect(toSquare);
-                };
-            }
-
-            quantumRippleEffect(element) {
-                party.sparkles(element, {
-                    count: party.variation.range(20, 40),
-                    speed: party.variation.range(100, 300),
-                    size: party.variation.range(0.5, 1.2)
+            clearHighlights() {
+                document.querySelectorAll('.square').forEach(square => {
+                    square.classList.remove('highlight');
                 });
             }
 
-            showLegalMoves(from) {
-                this.legalMoves = this.game.moves({ square: from, verbose: true });
-                this.legalMoves.forEach(move => {
-                    const square = document.getElementById(move.to);
-                    const indicator = document.createElement('div');
-                    indicator.className = 'legal-move';
-                    square.appendChild(indicator);
-                });
+            getStatusText() {
+                if (this.game.is_checkmate()) return `Checkmate! ${this.game.turn() === 'w' ? 'Black' : 'White'} wins!`;
+                if (this.game.is_draw()) return 'Game drawn!';
+                if (this.game.in_check()) return `${this.game.turn() === 'w' ? 'White' : 'Black'} is in check!`;
+                return `${this.game.turn() === 'w' ? 'White' : 'Black'}'s turn`;
             }
 
-            clearLegalMoves() {
-                document.querySelectorAll('.legal-move').forEach(el => el.remove());
-            }
-
-            playMoveSound(move) {
-                const sound = move.captured ? 'capture' : 'move';
-                this.audio[sound].play();
-            }
-
-            checkGameState() {
-                if (this.game.is_checkmate()) {
-                    this.showGameOver('checkmate');
-                } else if (this.game.is_draw()) {
-                    this.showGameOver('draw');
-                }
-            }
-
-            showGameOver(result) {
-                const message = result === 'checkmate' 
-                    ? `${this.game.turn() === 'w' ? 'Black' : 'White'} wins by checkmate!`
-                    : 'Game drawn!';
+            async makeAIMove() {
+                if (this.game.game_over()) return;
                 
-                this.audio[result === 'checkmate' ? 'checkmate' : 'draw'].play();
-                this.quantumRippleEffect(this.board);
-            }
-
-            makeAIMove() {
+                // Simple AI - replace with Stockfish for better AI
                 const moves = this.game.moves();
                 const move = moves[Math.floor(Math.random() * moves.length)];
                 this.game.move(move);
-                this.updatePieces();
-                this.playMoveSound(move);
-                this.checkGameState();
+                this.updateBoard();
             }
 
-            initAudio() {
-                this.audio = {
-                    move: new Howl({ src: ['move.wav'] }),
-                    capture: new Howl({ src: ['capture.wav'] }),
-                    checkmate: new Howl({ src: ['checkmate.wav'] }),
-                    draw: new Howl({ src: ['draw.wav'] })
-                };
+            newGame() {
+                this.game.reset();
+                this.updateBoard();
+                this.aiEnabled = false;
             }
 
-            startAmbientEffects() {
-                let hueRotation = 0;
-                setInterval(() => {
-                    hueRotation = (hueRotation + 0.1) % 360;
-                    document.body.style.background = `
-                        radial-gradient(
-                            circle at ${Math.random() * 100}% ${Math.random() * 100}%,
-                            hsl(${hueRotation}, 70%, 10%) 0%,
-                            hsl(${(hueRotation + 120) % 360}, 70%, 5%) 100%
-                        )
-                    `;
-                }, 5000);
+            toggleAI() {
+                this.aiEnabled = !this.aiEnabled;
+                if (this.aiEnabled && this.game.turn() === 'b') this.makeAIMove();
             }
         }
 
-        // Initialize the game
-        const game = new CosmicChess();
+        const chess = new ChessGame();
 
-        // Add control buttons
-        document.getElementById('quantumMenu').addEventListener('click', () => {
-            game.game.reset();
-            game.updatePieces();
-        });
+        function newGame() {
+            chess.newGame();
+        }
+
+        function toggleAI() {
+            chess.toggleAI();
+        }
     </script>
 </body>
 </html>
