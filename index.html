@@ -68,59 +68,56 @@
         }
 
         .piece {
-            width: 80%;
-            height: 80%;
-            position: absolute;
-            top: 10%;
-            left: 10%;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3.5vmin;
+            font-family: 'Arial Unicode MS', sans-serif;
             cursor: grab;
             transition: all 0.3s ease;
-            background-size: contain;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
-        .piece.dragging {
-            cursor: grabbing;
-            transform: scale(1.2) rotate(8deg);
-            filter: drop-shadow(0 0 12px rgba(255, 56, 208, 0.8));
-            z-index: 100;
-        }
+        .white { color: #fff; }
+        .black { color: #222; }
 
-        .move-indicator {
+        .legal-move {
             position: absolute;
             width: 30%;
             height: 30%;
-            background: rgba(0, 243, 255, 0.4);
+            background: rgba(0, 243, 255, 0.3);
             border-radius: 50%;
-            top: 35%;
-            left: 35%;
+            pointer-events: none;
             animation: pulse 1.5s infinite;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(0.8); opacity: 0.4; }
-            50% { transform: scale(1.2); opacity: 0.8; }
-            100% { transform: scale(0.8); opacity: 0.4; }
+        .check {
+            animation: glow-red 1s infinite alternate;
         }
 
-        .time-machine {
+        @keyframes glow-red {
+            from { box-shadow: 0 0 10px rgba(255,0,0,0.3); }
+            to { box-shadow: 0 0 30px rgba(255,0,0,0.7); }
+        }
+
+        .holographic-overlay {
             position: fixed;
-            bottom: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 1rem;
-            padding: 1rem;
-            background: var(--quantum-glass);
-            border-radius: var(--event-horizon);
-            backdrop-filter: blur(8px);
-        }
-
-        .cosmic-controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 1rem;
-            padding: 2rem;
+            inset: 0;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            z-index: 1000;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(255, 255, 255, 0.02) 0px,
+                rgba(255, 255, 255, 0.02) 1px,
+                transparent 1px,
+                transparent 2px
+            );
         }
 
         .quantum-button {
@@ -150,21 +147,6 @@
         .quantum-button:hover::after {
             opacity: 1;
         }
-
-        .holographic-overlay {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            mix-blend-mode: screen;
-            z-index: 1000;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(255, 255, 255, 0.02) 0px,
-                rgba(255, 255, 255, 0.02) 1px,
-                transparent 1px,
-                transparent 2px
-            );
-        }
     </style>
 </head>
 <body>
@@ -177,34 +159,21 @@
 
     <div class="quantum-board" id="chessboard"></div>
 
-    <div class="time-machine">
-        <button class="quantum-button" id="rewind"><i class="fas fa-backward"></i></button>
-        <button class="quantum-button" id="playPause"><i class="fas fa-pause"></i></button>
-        <button class="quantum-button" id="forward"><i class="fas fa-forward"></i></button>
-    </div>
-
-    <div class="cosmic-controls">
-        <button class="quantum-button" id="aiDifficulty"><i class="fas fa-robot"></i> Quantum AI</button>
-        <button class="quantum-button" id="realityShift"><i class="fas fa-swirl"></i> Shift Dimension</button>
-        <button class="quantum-button" id="timeDilation"><i class="fas fa-hourglass-half"></i> Slow Mo</button>
-        <button class="quantum-button" id="singularity"><i class="fas fa-black-hole"></i> Event Horizon</button>
-    </div>
-
     <script>
-        class QuantumChess {
+        class CosmicChess {
             constructor() {
                 this.game = new Chess();
                 this.board = document.getElementById('chessboard');
-                this.draggedPiece = null;
-                this.currentDimension = 'standard';
-                this.timeDilationActive = false;
+                this.selectedPiece = null;
+                this.legalMoves = [];
+                this.currentMode = 'ai';
                 this.init();
             }
 
             init() {
                 this.createBoard();
                 this.initDragAndDrop();
-                this.initEventListeners();
+                this.updatePieces();
                 this.initAudio();
                 this.startAmbientEffects();
             }
@@ -214,12 +183,25 @@
                 for (let rank = 8; rank >= 1; rank--) {
                     for (let file = 0; file < 8; file++) {
                         const square = document.createElement('div');
-                        square.className = `square ${(rank + file) % 2 ? 'light' : 'dark'}`;
+                        square.className = `square ${(rank + file) % 2 === 0 ? 'white' : 'black'}`;
                         square.id = `${'abcdefgh'[file]}${rank}`;
                         this.board.appendChild(square);
                     }
                 }
-                this.updatePieces();
+            }
+
+            getPieceSymbol(piece) {
+                const symbols = {
+                    'w': { 
+                        'k': '♔', 'q': '♕', 'r': '♖',
+                        'b': '♗', 'n': '♘', 'p': '♙'
+                    },
+                    'b': {
+                        'k': '♚', 'q': '♛', 'r': '♜',
+                        'b': '♝', 'n': '♞', 'p': '♟'
+                    }
+                };
+                return symbols[piece.color][piece.type];
             }
 
             updatePieces() {
@@ -228,13 +210,21 @@
                         const square = document.getElementById(
                             `${'abcdefgh'[file]}${8 - rank}`
                         );
+                        square.innerHTML = '';
+                        
                         if (piece) {
-                            let pieceElement = square.querySelector('.piece') || document.createElement('div');
-                            pieceElement.className = `piece ${piece.color}${piece.type}`;
+                            const pieceElement = document.createElement('div');
+                            pieceElement.className = `piece ${piece.color}`;
+                            pieceElement.textContent = this.getPieceSymbol(piece);
+                            pieceElement.dataset.piece = `${piece.color}${piece.type}`;
                             pieceElement.draggable = true;
-                            if (!square.contains(pieceElement)) square.appendChild(pieceElement);
+                            square.appendChild(pieceElement);
+                        }
+
+                        if (this.game.in_check() && piece?.type === 'k') {
+                            square.classList.add('check');
                         } else {
-                            square.querySelector('.piece')?.remove();
+                            square.classList.remove('check');
                         }
                     });
                 });
@@ -243,9 +233,9 @@
             initDragAndDrop() {
                 this.board.addEventListener('dragstart', e => {
                     if (e.target.classList.contains('piece')) {
-                        this.draggedPiece = e.target;
+                        this.selectedPiece = e.target.parentElement.id;
                         e.target.classList.add('dragging');
-                        this.highlightLegalMoves(e.target.parentElement.id);
+                        this.showLegalMoves(this.selectedPiece);
                     }
                 });
 
@@ -258,41 +248,44 @@
                 this.board.addEventListener('dragend', e => {
                     this.board.querySelectorAll('.square').forEach(sq => {
                         sq.style.transform = '';
-                        sq.querySelector('.move-indicator')?.remove();
                     });
-                    this.draggedPiece?.classList.remove('dragging');
-                    this.draggedPiece = null;
+                    this.clearLegalMoves();
+                    e.target.classList.remove('dragging');
                 });
 
                 this.board.addEventListener('drop', e => {
                     e.preventDefault();
                     const targetSquare = e.target.closest('.square');
-                    if (targetSquare && this.draggedPiece) {
-                        const move = this.game.move({
-                            from: this.draggedPiece.parentElement.id,
-                            to: targetSquare.id,
-                            promotion: 'q'
-                        });
-                        if (move) {
-                            this.animateQuantumMove(move);
-                            if (this.game.in_check()) this.triggerSingularityEffect();
-                        }
+                    if (targetSquare && this.selectedPiece) {
+                        this.makeMove(this.selectedPiece, targetSquare.id);
                     }
                 });
             }
 
-            animateQuantumMove(move) {
+            makeMove(from, to) {
+                const move = this.game.move({ from, to, promotion: 'q' });
+                if (move) {
+                    this.animateMove(move);
+                    this.playMoveSound(move);
+                    this.checkGameState();
+                    if (this.currentMode === 'ai' && !this.game.game_over()) {
+                        setTimeout(() => this.makeAIMove(), 500);
+                    }
+                }
+                this.selectedPiece = null;
+                return move;
+            }
+
+            animateMove(move) {
                 const fromSquare = document.getElementById(move.from);
                 const toSquare = document.getElementById(move.to);
                 const piece = fromSquare.querySelector('.piece');
                 
-                // Create temporary animation element
                 const animPiece = piece.cloneNode(true);
                 animPiece.style.position = 'fixed';
                 animPiece.style.transform = `translate(${fromSquare.offsetLeft}px, ${fromSquare.offsetTop}px)`;
                 document.body.appendChild(animPiece);
 
-                // Animate with physics-like motion
                 const targetX = toSquare.offsetLeft;
                 const targetY = toSquare.offsetTop;
                 animPiece.animate([
@@ -300,7 +293,7 @@
                     { transform: `translate(${targetX}px, ${targetY}px) scale(1.2) rotate(360deg)` },
                     { transform: `translate(${targetX}px, ${targetY}px) scale(1)` }
                 ], {
-                    duration: this.timeDilationActive ? 2000 : 500,
+                    duration: 500,
                     easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
                 }).onfinish = () => {
                     animPiece.remove();
@@ -317,28 +310,61 @@
                 });
             }
 
-            triggerSingularityEffect() {
-                document.documentElement.style.setProperty('--event-horizon', '50%');
-                setTimeout(() => {
-                    document.documentElement.style.setProperty('--event-horizon', '24px');
-                }, 1000);
+            showLegalMoves(from) {
+                this.legalMoves = this.game.moves({ square: from, verbose: true });
+                this.legalMoves.forEach(move => {
+                    const square = document.getElementById(move.to);
+                    const indicator = document.createElement('div');
+                    indicator.className = 'legal-move';
+                    square.appendChild(indicator);
+                });
+            }
+
+            clearLegalMoves() {
+                document.querySelectorAll('.legal-move').forEach(el => el.remove());
+            }
+
+            playMoveSound(move) {
+                const sound = move.captured ? 'capture' : 'move';
+                this.audio[sound].play();
+            }
+
+            checkGameState() {
+                if (this.game.is_checkmate()) {
+                    this.showGameOver('checkmate');
+                } else if (this.game.is_draw()) {
+                    this.showGameOver('draw');
+                }
+            }
+
+            showGameOver(result) {
+                const message = result === 'checkmate' 
+                    ? `${this.game.turn() === 'w' ? 'Black' : 'White'} wins by checkmate!`
+                    : 'Game drawn!';
+                
+                this.audio[result === 'checkmate' ? 'checkmate' : 'draw'].play();
+                this.quantumRippleEffect(this.board);
+            }
+
+            makeAIMove() {
+                const moves = this.game.moves();
+                const move = moves[Math.floor(Math.random() * moves.length)];
+                this.game.move(move);
+                this.updatePieces();
+                this.playMoveSound(move);
+                this.checkGameState();
             }
 
             initAudio() {
                 this.audio = {
                     move: new Howl({ src: ['move.wav'] }),
                     capture: new Howl({ src: ['capture.wav'] }),
-                    check: new Howl({ src: ['check.wav'] }),
-                    ambient: new Howl({
-                        src: ['ambient.mp3'],
-                        loop: true,
-                        volume: 0.3
-                    })
+                    checkmate: new Howl({ src: ['checkmate.wav'] }),
+                    draw: new Howl({ src: ['draw.wav'] })
                 };
             }
 
             startAmbientEffects() {
-                // Add dynamic background animation
                 let hueRotation = 0;
                 setInterval(() => {
                     hueRotation = (hueRotation + 0.1) % 360;
@@ -353,10 +379,14 @@
             }
         }
 
-        // Initialize Quantum Chess Experience
-        const quantumChess = new QuantumChess();
+        // Initialize the game
+        const game = new CosmicChess();
 
-        // TODO: Implement AI integration, game modes, and additional effects
+        // Add control buttons
+        document.getElementById('quantumMenu').addEventListener('click', () => {
+            game.game.reset();
+            game.updatePieces();
+        });
     </script>
 </body>
 </html>
